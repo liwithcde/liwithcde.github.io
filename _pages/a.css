@@ -1,0 +1,237 @@
+@font-face {
+    font-family: cera_round;
+    src: url("cera_round.woff2");
+}
+
+body{
+    display: grid;
+    place-items:center;
+    font-family: cera_round;
+}
+
+#cell_image{
+    width:50%;
+    position: absolute;
+    filter: ;
+}
+
+#atp{
+    margin-bottom: 20px;
+}
+
+#glucose{
+    margin-bottom: 20px;
+}
+
+#atp_text{
+    display: inline-block;
+    width: 120px;
+    font-size: 30px;
+    text-align: center;
+}
+#glucose_text{
+    display: inline-block;
+    width: 120px;
+    font-size: 30px;
+    text-align: center;
+}
+
+#atp_bar{
+    display: inline-block;
+    width:700px;
+    height: 40px;
+    border:2px black solid;
+    border-radius: 20px;
+    overflow: hidden;
+   
+}
+#glucose_bar{
+    display: inline-block;
+    width:700px;
+    height: 40px;
+    border:2px black solid;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+#atp_progress_bar{
+    color:#000000;
+    background-color: green;
+    height:100%;
+    width: 70%;
+    display: flex;
+    align-items: center;
+
+}
+
+#glucose_progress_bar{
+    color:#000000;
+    background-color: green;
+    height:100%;
+    width: 30%;
+    display: flex;
+    align-items: center;
+
+}
+
+#mainview{
+    color:#000000;
+    width:600px;
+    /* height: 1000px; */
+    border: 4px black solid;
+    border-radius: 15px;
+}
+
+#class_bar{
+    display:flex;
+}
+
+#class_bar>div{
+    display:flex;
+    justify-content: center;
+    align-items: center;
+
+    flex:1;
+    border: 1px rgb(0, 0, 0) solid;;
+}
+
+
+
+#DNA{
+    height: 200px;
+    border:2px #000000 solid;
+    display: flex;
+    justify-content:space-around;
+    align-items: center;
+}
+
+
+
+#proteins{
+    height: 270px;
+    border:2px #000000 solid;
+    display: flex;
+    flex-direction: column;
+}   
+
+#DNA>.GOx{
+    display: inline-block;
+    width: 200px;
+    height:100px;
+    border:1px #000000 solid;
+   
+}
+
+#DNA>.glucose_transferase{
+    display: inline-block;
+    width: 200px;
+    height:100px;
+    border:1px #000000 solid;
+}
+
+#DNA .DNA_text{
+    height: 88px;
+    border:1px #000000 solid;
+}
+
+#DNA .DNA_bar{
+    height: 10px;
+    border:1px #000000 solid;
+}
+
+#DNA .DNA_progress_bar{
+    height: 10px;
+    background-color: green;
+    width: 30%;
+}
+
+#RNAs{
+    height: 300px;
+    border:2px #000000 solid;
+    display: flex;
+    justify-content:space-around;
+    align-items: center;
+}
+
+#RNAs>.GOx{
+    display: flex;
+    width: 250px;
+    height:100px;
+    border:1px #000000 solid;
+}
+
+#RNAs>.glucose_transferase{
+    display: flex;
+    width: 250px;
+    height:100px;
+    border:1px #000000 solid;
+
+}
+#RNAs .RNA_number{
+    
+    width: 50px;
+    height: 100%;
+    border:1px #000000 solid;
+    box-sizing: border-box;
+
+
+    font-size: 2.5em;
+
+    display:flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#RNAs .RNA_exclude_number{
+    flex:1;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+#RNAs .RNA_space{
+    height: 90%;
+    border:1px #000000 solid;
+    box-sizing: border-box;
+}
+
+#RNAs .RNA_bar{
+    height: 10%;
+    border:1px #000000 solid;
+    box-sizing: border-box;
+
+}
+
+#RNAs .RNA_bar>.RNA_progress_bar{
+    background-color: green;
+    height: 100%;
+    width: 50%;
+
+}
+#proteins .proteins_number_container{
+    display: flex;
+    height: 100%;
+}
+
+
+
+#proteins .proteins_number_container>div{
+    flex:1;
+    border:1px #000000 solid;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#proteins .proteins_number_container .protein_number{
+    width: 50%;
+    height: 50%;
+
+    border: 2px solid black;
+    
+    font-size: 2em;
+    border-radius: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+}
