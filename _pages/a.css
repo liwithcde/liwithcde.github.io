@@ -12,7 +12,9 @@ body{
 #cell_image{
     width:50%;
     position: absolute;
-    filter: ;
+    z-index: -1;
+    filter: hue-rotate(120deg); 
+    opacity: 0.7; 
 }
 
 #atp{
