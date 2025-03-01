@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高德纳箭头(Knuth's up-arrow) 递归计算器</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #34495e;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            margin-right: 10px;
+        }
+        
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .output-area {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 20px;
+            min-height: 100px;
+        }
+        
+        .error {
+            color: #e74c3c;
+            font-style: italic;
+            margin-top: 5px;
+        }
+        
+        /* 表达式DOM样式 */
+        .expr-container {
+            margin: 10px 0;
+            overflow-x: auto;
+            padding: 10px;
+            font-size: 18px;
+        }
+        
+        /* 括号组样式 */
+        .expr-group {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 8px;
+            margin: 4px;
+            display: inline-block;
+            background-color: rgba(240, 240, 240, 0.5);
+        }
+        
+        /* 可计算的组样式 */
+        .expr-computable {
+            border: 1px solid #bde0ff;
+            border-radius: 4px;
+            padding: 8px;
+            margin: 4px;
+            display: inline-block;
+            background-color: rgba(230, 240, 255, 0.6);
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .expr-computable:hover {
+            background-color: rgba(200, 220, 255, 0.8);
+        }
+        
+        /* 可展开的组样式 */
+        .expr-expandable {
+            border: 1px solid #ffcccc;
+            border-radius: 4px;
+            padding: 8px;
+            margin: 4px;
+            display: inline-block;
+            background-color: rgba(255, 240, 240, 0.6);
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .expr-expandable:hover {
+            background-color: rgba(255, 220, 220, 0.8);
+        }
+        
+        /* 超可展开的组样式 */
+        .expr-super-expandable {
+            border: 1px solid #ffccdd;
+            border-radius: 4px;
+            padding: 8px;
+            margin: 4px;
+            display: inline-block;
+            background-color: rgba(255, 200, 220, 0.6);
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .expr-super-expandable:hover {
+            background-color: rgba(255, 180, 200, 0.8);
+        }
+        
+        /* 数字样式 */
+        .expr-number {
+            color: #16a085;
+            font-weight: bold;
+        }
+        
+        /* 运算符样式 */
+        .expr-operator {
+            color: #c0392b;
+            font-weight: bold;
+            padding: 0 4px;
+        }
+        
+        /* 箭头运算符样式 */
+        .expr-arrow {
+            color: #8e44ad;
+            font-weight: bold;
+            padding: 0 4px;
+        }
+        
+        .instructions {
+            background-color: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 10px 15px;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #555;
+        }
+        
+        /* 例子按钮 */
+        .examples {
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .example-btn {
+            background-color: #f1f1f1;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px 10px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .example-btn:hover {
+            background-color: #e9e9e9;
+        }
+        
+        .note {
+            background-color: #fff8dc;
+            border-left: 4px solid #f1c40f;
+            padding: 10px 15px;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>高德纳箭头(Knuth's up-arrow) 递归计算器</h1>
+        
+        <div class="input-group">
+            <label for="expression-input">输入表达式</label>
+            <input type="text" id="expression-input" placeholder="例如: 2+3*4 或 3^4 或 2↑↑3 或 3↑↑↑2">
+            <div id="input-error" class="error"></div>
+        </div>
+        
+        <button class="btn" onclick="convertExpression()">解析表达式</button>
+        <button class="btn" onclick="resetExpression()" style="background-color: #e74c3c;">重置</button>
+        
+        <div class="examples">
+            <button class="example-btn" onclick="loadExample('2+3*4')">2+3*4</button>
+            <button class="example-btn" onclick="loadExample('2^3^2')">2^3^2</button>
+            <button class="example-btn" onclick="loadExample('2↑3')">2↑3</button>
+            <button class="example-btn" onclick="loadExample('2↑↑3')">2↑↑3</button>
+            <button class="example-btn" onclick="loadExample('2↑↑↑2')">2↑↑↑2</button>
+            <button class="example-btn" onclick="loadExample('2↑↑4')">2↑↑4</button>
+            <button class="example-btn" onclick="loadExample('3↑↑2')">3↑↑2</button>
+            <button class="example-btn" onclick="loadExample('2↑2↑2')">2↑2↑2</button>
+        </div>
+        
+        
+        
+        <h3>表达式结构</h3>
+        <div id="output-area" class="output-area">
+            <div id="expr-container" class="expr-container"></div>
+        </div>
+
+        <div class="note">
+            <p><strong>高德纳箭头表示法：</strong></p>
+            <ul>
+                <li>a↑b = a^b (普通幂运算)</li>
+                <li>a↑↑b = a↑(a↑(a↑...a)) (b个a，表示b层a的幂运算)</li>
+                <li>a↑↑↑b = a↑↑(a↑↑↑(b-1)) (递归定义的超超幂运算)</li>
+                <li>箭头运算是右结合的，例如 2↑↑3 = 2↑(2↑2) = 2^4 = 16</li>
+            </ul>
+        </div>
+        
+        <div class="instructions">
+            <p><strong>使用说明：</strong></p>
+            <ul>
+                <li><span style="color: #3498db;">蓝色背景</span>的表达式可以计算（如加法和乘法）</li>
+                <li><span style="color: #c0392b;">红色背景</span>的表达式可以展开（如幂运算）</li>
+                <li><span style="color: #8e44ad;">紫色背景</span>的表达式可以展开（如高德纳箭头表示法）</li>
+                <li>递归地点击各个部分，可以逐步计算或展开表达式</li>
+                <li>支持正整数、加法(+)、乘法(*)、幂运算(^)和高德纳箭头(↑)</li>
+                <li>在输入框中输入箭头时，可以用英文字母 "u" 代替 "↑"，如 "2u3" 表示 "2↑3"</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // 解析表达式为标记序列
+        function tokenize(expr) {
+            const tokens = [];
+            let i = 0;
+            
+            while (i < expr.length) {
+                const char = expr[i];
+                
+                // 跳过空格
+                if (/\s/.test(char)) {
+                    i++;
+                    continue;
+                }
+                
+                // 处理数字
+                if (/\d/.test(char)) {
+                    let num = '';
+                    while (i < expr.length && /\d/.test(expr[i])) {
+                        num += expr[i++];
+                    }
+                    tokens.push({ type: 'number', value: num });
+                    continue;
+                }
+                
+                // 处理箭头运算符 ↑ (包括连续多个 ↑)
+                if (char === '↑' || char === 'u') {
+                    let arrowCount = 1;
+                    i++; // 跳过第一个箭头
+                    
+                    // 计算连续的箭头数量
+                    while (i < expr.length && (expr[i] === '↑' || expr[i] === 'u')) {
+                        arrowCount++;
+                        i++;
+                    }
+                    
+                    tokens.push({ type: 'arrow', value: '↑', count: arrowCount });
+                    continue;
+                }
+                
+                // 处理运算符和括号
+                if (['+', '*', '^', '(', ')'].includes(char)) {
+                    tokens.push({ 
+                        type: char === '(' || char === ')' ? 'paren' : 'operator', 
+                        value: char
+                    });
+                    i++;
+                    continue;
+                }
+                
+                // 不支持的字符
+                throw new Error(`不支持的字符: ${char}`);
+            }
+            
+            return tokens;
+        }
+        
+        // 验证表达式
+        function validateTokens(tokens) {
+            // 检查不支持的运算符
+            for (const token of tokens) {
+                if (token.type === 'operator' && !['+', '*', '^'].includes(token.value)) {
+                    throw new Error(`不支持的运算符: ${token.value}`);
+                }
+            }
+            
+            // 检查括号匹配
+            let parenCount = 0;
+            for (const token of tokens) {
+                if (token.type === 'paren') {
+                    if (token.value === '(') parenCount++;
+                    else if (token.value === ')') parenCount--;
+                    
+                    if (parenCount < 0) {
+                        throw new Error("括号不匹配");
+                    }
+                }
+            }
+            
+            if (parenCount !== 0) {
+                throw new Error("括号不匹配");
+            }
+        }
+        
+        // 解析标记序列为表达式树
+        function parse(tokens) {
+            // 先验证表达式
+            validateTokens(tokens);
+            
+            let pos = 0;
+            
+            // 解析表达式
+            function parseExpression() {
+                return parseAddition();
+            }
+            
+            // 解析加法
+            function parseAddition() {
+                let left = parseMultiplication();
+                
+                while (pos < tokens.length && 
+                      (tokens[pos].type === 'operator' && tokens[pos].value === '+')) {
+                    const operator = tokens[pos].value;
+                    pos++;
+                    const right = parseMultiplication();
+                    left = { type: 'binary', operator, left, right };
+                }
+                
+                return left;
+            }
+            
+            // 解析乘法
+            function parseMultiplication() {
+                let left = parseArrow();
+                
+                while (pos < tokens.length && 
+                      (tokens[pos].type === 'operator' && tokens[pos].value === '*')) {
+                    const operator = tokens[pos].value;
+                    pos++;
+                    const right = parseArrow();
+                    left = { type: 'binary', operator, left, right };
+                }
+                
+                return left;
+            }
+            
+            // 解析箭头运算（高德纳箭头表示法）
+            function parseArrow() {
+                let left = parsePower();
+                
+                if (pos < tokens.length && tokens[pos].type === 'arrow') {
+                    const arrowCount = tokens[pos].count;
+                    pos++;
+                    // 递归解析右侧以确保右结合性
+                    const right = parseArrow();
+                    return { type: 'arrow', arrowCount, left, right };
+                }
+                
+                return left;
+            }
+            
+            // 解析幂运算 (右结合)
+            function parsePower() {
+                let left = parsePrimary();
+                
+                if (pos < tokens.length && tokens[pos].type === 'operator' && tokens[pos].value === '^') {
+                    const operator = tokens[pos].value;
+                    pos++;
+                    // 递归解析右侧以确保右结合性
+                    const right = parseArrow();
+                    return { type: 'binary', operator, left, right };
+                }
+                
+                return left;
+            }
+            
+            // 解析基本表达式（数字或括号表达式）
+            function parsePrimary() {
+                // 处理括号
+                if (pos < tokens.length && tokens[pos].type === 'paren' && tokens[pos].value === '(') {
+                    pos++; // 跳过左括号
+                    const expr = parseExpression();
+                    
+                    if (pos >= tokens.length || tokens[pos].type !== 'paren' || tokens[pos].value !== ')') {
+                        throw new Error("括号不匹配");
+                    }
+                    
+                    pos++; // 跳过右括号
+                    return expr;
+                }
+                
+                // 处理数字
+                if (pos < tokens.length && tokens[pos].type === 'number') {
+                    return { type: 'number', value: tokens[pos++].value };
+                }
+                
+                throw new Error(`意外的标记: ${JSON.stringify(tokens[pos])}`);
+            }
+            
+            // 开始解析
+            const result = parseExpression();
+            
+            if (pos < tokens.length) {
+                throw new Error("无法完全解析表达式");
+            }
+            
+            return result;
+        }
+        
+        // 将语法树转换为DOM表示
+        function treeToDOM(node) {
+            // 处理数字节点 - 返回数字文本
+            if (node.type === 'number') {
+                const numElement = document.createElement('span');
+                numElement.className = 'expr-number';
+                numElement.textContent = node.value;
+                return numElement;
+            }
+            
+            // 处理普通二元运算（+, *, ^）
+            if (node.type === 'binary') {
+                const groupElement = document.createElement('span');
+                
+                // 递归构建左右子树
+                const leftElement = treeToDOM(node.left);
+                const rightElement = treeToDOM(node.right);
+                
+                // 创建运算符元素
+                const opElement = document.createElement('span');
+                opElement.className = 'expr-operator';
+                opElement.textContent = node.operator;
+                
+                // 判断表达式类型
+                if (node.operator === '^') {
+                    // 幂运算是可展开的
+                    groupElement.className = 'expr-expandable';
+                    groupElement.title = '点击展开幂运算';
+                    
+                    // 存储必要的数据用于展开
+                    groupElement.setAttribute('data-base', node.left.type === 'number' ? node.left.value : 'complex');
+                    groupElement.setAttribute('data-exponent', node.right.type === 'number' ? node.right.value : 'complex');
+                    
+                    // 添加点击事件
+                    groupElement.onclick = function(e) {
+                        e.stopPropagation();
+                        expandPowerExpression(this);
+                    };
+                } else if (['+', '*'].includes(node.operator) && 
+                          isSimpleNumber(node.left) && isSimpleNumber(node.right)) {
+                    // 基本运算是可计算的
+                    groupElement.className = 'expr-computable';
+                    groupElement.title = '点击计算此表达式';
+                    
+                    // 添加点击事件
+                    groupElement.onclick = function(e) {
+                        e.stopPropagation();
+                        computeExpression(this);
+                    };
+                } else {
+                    // 其他复杂表达式
+                    groupElement.className = 'expr-group';
+                }
+                
+                // 组装元素
+                groupElement.appendChild(leftElement);
+                groupElement.appendChild(opElement);
+                groupElement.appendChild(rightElement);
+                
+                return groupElement;
+            }
+            
+            // 处理箭头运算（高德纳箭头表示法）
+            if (node.type === 'arrow') {
+                const groupElement = document.createElement('span');
+                
+                // 递归构建左右子树
+                const leftElement = treeToDOM(node.left);
+                const rightElement = treeToDOM(node.right);
+                
+                // 创建箭头运算符元素
+                const arrowElement = document.createElement('span');
+                arrowElement.className = 'expr-arrow';
+                
+                // 根据箭头数量生成运算符文本
+                let arrowText = '';
+                for (let i = 0; i < node.arrowCount; i++) {
+                    arrowText += '↑';
+                }
+                arrowElement.textContent = arrowText;
+                
+                // 箭头运算是可展开的
+                groupElement.className = 'expr-super-expandable';
+                groupElement.title = '点击展开箭头运算';
+                
+                // 存储必要的数据用于展开
+                groupElement.setAttribute('data-base', node.left.type === 'number' ? node.left.value : 'complex');
+                groupElement.setAttribute('data-exponent', node.right.type === 'number' ? node.right.value : 'complex');
+                groupElement.setAttribute('data-arrow-count', node.arrowCount);
+                
+                // 添加点击事件
+                groupElement.onclick = function(e) {
+                    e.stopPropagation();
+                    expandArrowExpression(this);
+                };
+                
+                // 组装元素
+                groupElement.appendChild(leftElement);
+                groupElement.appendChild(arrowElement);
+                groupElement.appendChild(rightElement);
+                
+                return groupElement;
+            }
+            
+            // 默认情况下返回空容器
+            return document.createElement('span');
+        }
+        
+        // 检查节点是否为简单数字
+        function isSimpleNumber(node) {
+            return node.type === 'number';
+        }
+        
+        // 从DOM树中重新解析表达式
+        function rebuildDOM(container) {
+            // 从DOM元素创建表达式字符串
+            function domToExpressionString(element) {
+                if (element.classList.contains('expr-number')) {
+                    return element.textContent;
+                }
+                
+                if (element.classList.contains('expr-group') || 
+                    element.classList.contains('expr-computable') || 
+                    element.classList.contains('expr-expandable') ||
+                    element.classList.contains('expr-super-expandable')) {
+                    
+                    let result = '';
+                    
+                    // 收集子元素
+                    for (const child of element.childNodes) {
+                        if (child.classList.contains('expr-number')) {
+                            result += child.textContent;
+                        } else if (child.classList.contains('expr-operator')) {
+                            result += child.textContent;
+                        } else if (child.classList.contains('expr-arrow')) {
+                            result += child.textContent;
+                        } else if (child.classList.contains('expr-group') || 
+                                  child.classList.contains('expr-computable') || 
+                                  child.classList.contains('expr-expandable') ||
+                                  child.classList.contains('expr-super-expandable')) {
+                            // 递归处理嵌套表达式
+                            const subExpr = domToExpressionString(child);
+                            // 如果子表达式含有运算符，添加括号
+                            result += /[+*^↑]/.test(subExpr) ? `(${subExpr})` : subExpr;
+                        }
+                    }
+                    
+                    return result;
+                }
+                
+                return '';
+            }
+            
+            // 获取表达式字符串
+            const exprString = domToExpressionString(container);
+            
+            // 重新解析和构建DOM
+            try {
+                const tokens = tokenize(exprString);
+                const tree = parse(tokens);
+                return treeToDOM(tree);
+            } catch (error) {
+                console.error("重建DOM失败:", error);
+                return container.cloneNode(true);
+            }
+        }
+        
+        // 展开幂运算表达式
+        function expandPowerExpression(element) {
+            // 获取基数和指数
+            const base = element.getAttribute('data-base');
+            const exponent = element.getAttribute('data-exponent');
+            
+            // 如果基数或指数不是简单数字，则无法展开
+            if (base === 'complex' || exponent === 'complex') {
+                return;
+            }
+            
+            const baseNum = parseInt(base);
+            const exponentNum = parseInt(exponent);
+            
+            // 特殊情况处理
+            if (exponentNum === 0) {
+                // x^0 = 1
+                const numElement = document.createElement('span');
+                numElement.className = 'expr-number';
+                numElement.textContent = '1';
+                
+                // 替换元素并重新解析父容器
+                const parent = element.parentNode;
+                parent.replaceChild(numElement, element);
+                
+                // 如果不是顶级容器，重建父容器
+                if (parent.id !== 'expr-container') {
+                    const grandParent = parent.parentNode;
+                    const newParent = rebuildDOM(parent);
+                    grandParent.replaceChild(newParent, parent);
+                }
+                
+                return;
+            }
+            
+            if (exponentNum === 1) {
+                // x^1 = x
+                const numElement = document.createElement('span');
+                numElement.className = 'expr-number';
+                numElement.textContent = base;
+                
+                // 替换元素并重新解析父容器
+                const parent = element.parentNode;
+                parent.replaceChild(numElement, element);
+                
+                // 如果不是顶级容器，重建父容器
+                if (parent.id !== 'expr-container') {
+                    const grandParent = parent.parentNode;
+                    const newParent = rebuildDOM(parent);
+                    grandParent.replaceChild(newParent, parent);
+                }
+                
+                return;
+            }
+            
+            // 创建临时结构
+            const tempContainer = document.createElement('div');
+            
+            // 创建表达式字符串
+            const exprString = `${base} * ${base}^${exponentNum - 1}`;
+            
+            try {
+                // 解析和构建临时DOM
+                const tokens = tokenize(exprString);
+                const tree = parse(tokens);
+                const newDOM = treeToDOM(tree);
+                
+                tempContainer.appendChild(newDOM);
+                
+                // 替换元素
+                const parent = element.parentNode;
+                parent.replaceChild(newDOM, element);
+                
+                // 如果不是顶级容器，重建父容器
+                if (parent.id !== 'expr-container') {
+                    const grandParent = parent.parentNode;
+                    const newParent = rebuildDOM(parent);
+                    grandParent.replaceChild(newParent, parent);
+                }
+            } catch (error) {
+                console.error("展开幂运算失败:", error);
+                alert("展开表达式时出错");
+            }
+        }
+        
+        // 展开高德纳箭头表达式
+        function expandArrowExpression(element) {
+            // 获取基数、指数和箭头数量
+            const base = element.getAttribute('data-base');
+            const exponent = element.getAttribute('data-exponent');
+            const arrowCount = parseInt(element.getAttribute('data-arrow-count'));
+            
+            // 如果基数或指数不是简单数字，则无法展开
+            if (base === 'complex' || exponent === 'complex') {
+                
+                return;
+            }
+            
+            const baseNum = parseInt(base);
+            const exponentNum = parseInt(exponent);
+            
+            // 特殊情况处理
+            if (exponentNum === 0 && arrowCount > 1) {
+                // a↑↑0 = 1, a↑↑↑0 = 1, 等等
+                const numElement = document.createElement('span');
+                numElement.className = 'expr-number';
+                numElement.textContent = '1';
+                
+                // 替换元素
+                const parent = element.parentNode;
+                parent.replaceChild(numElement, element);
+                
+                // 如果不是顶级容器，重建父容器
+                if (parent.id !== 'expr-container') {
+                    const grandParent = parent.parentNode;
+                    const newParent = rebuildDOM(parent);
+                    grandParent.replaceChild(newParent, parent);
+                }
+                
+                return;
+            }
+            
+            if (exponentNum === 1) {
+                // a↑↑1 = a, a↑↑↑1 = a, 等等
+                const numElement = document.createElement('span');
+                numElement.className = 'expr-number';
+                numElement.textContent = base;
+                
+                // 替换元素
+                const parent = element.parentNode;
+                parent.replaceChild(numElement, element);
+                
+                // 如果不是顶级容器，重建父容器
+                if (parent.id !== 'expr-container') {
+                    const grandParent = parent.parentNode;
+                    const newParent = rebuildDOM(parent);
+                    grandParent.replaceChild(newParent, parent);
+                }
+                
+                return;
+            }
+            
+            // 创建展开表达式
+            let exprString;
+            
+            if (arrowCount === 1) {
+                // a↑b = a^b
+                exprString = `${base}^${exponent}`;
+            } else {
+                // 生成箭头字符串，比如 ↑ 或 ↑↑ 等
+                let arrowPrevLevel = '';
+                for (let i = 0; i < arrowCount - 1; i++) {
+                    arrowPrevLevel += '↑';
+                }
+                
+                let arrowCurrentLevel = '';
+                for (let i = 0; i < arrowCount; i++) {
+                    arrowCurrentLevel += '↑';
+                }
+                
+                // a↑↑b = a↑(a↑↑(b-1))  
+                // a↑↑↑b = a↑↑(a↑↑↑(b-1))
+                exprString = `${base}${arrowPrevLevel}(${base}${arrowCurrentLevel}${exponentNum - 1})`;
+            }
+            
+            try {
+                // 解析和构建临时DOM
+                const tokens = tokenize(exprString);
+                const tree = parse(tokens);
+                const newDOM = treeToDOM(tree);
+                
+                // 替换元素
+                const parent = element.parentNode;
+                parent.replaceChild(newDOM, element);
+                
+                // 如果不是顶级容器，重建父容器
+                if (parent.id !== 'expr-container') {
+                    const grandParent = parent.parentNode;
+                    const newParent = rebuildDOM(parent);
+                    grandParent.replaceChild(newParent, parent);
+                }
+            } catch (error) {
+                console.error("展开箭头运算失败:", error);
+                alert("展开表达式时出错");
+            }
+        }
+        
+        // 计算基本表达式
+        function computeExpression(element) {
+            // 找到所有子元素
+            const children = Array.from(element.childNodes);
+            
+            // 查找数字和运算符
+            let leftNum = null;
+            let rightNum = null;
+            let operator = null;
+            
+            for (const child of children) {
+                if (child.className === 'expr-number') {
+                    if (leftNum === null) {
+                        leftNum = parseInt(child.textContent);
+                    } else {
+                        rightNum = parseInt(child.textContent);
+                    }
+                } else if (child.className === 'expr-operator') {
+                    operator = child.textContent;
+                }
+            }
+            
+            if (leftNum === null || rightNum === null || operator === null) {
+                return; // 结构不完整
+            }
+            
+            // 执行计算
+            let result;
+            switch (operator) {
+                case '+': result = leftNum + rightNum; break;
+                case '*': result = leftNum * rightNum; break;
+                default: return; // 不支持的运算符
+            }
+            
+            // 创建结果节点
+            const resultElement = document.createElement('span');
+            resultElement.className = 'expr-number';
+            resultElement.textContent = result.toString();
+            
+            // 替换元素
+            const parent = element.parentNode;
+            parent.replaceChild(resultElement, element);
+            
+            // 如果不是顶级容器，重建父容器
+            if (parent.id !== 'expr-container') {
+                const grandParent = parent.parentNode;
+                const newParent = rebuildDOM(parent);
+                grandParent.replaceChild(newParent, parent);
+            }
+        }
+        
+        // 替换输入中的 'u' 为 '↑' 箭头
+        function preprocessInput(input) {
+            return input.replace(/u/g, '↑');
+        }
+        
+        // 处理表达式
+        function processExpression(expression) {
+            try {
+                // 预处理输入，替换 'u' 为 '↑'
+                const processedExpr = preprocessInput(expression);
+                
+                // 标记化和解析
+                const tokens = tokenize(processedExpr);
+                const tree = parse(tokens);
+                
+                // 转换为DOM
+                const domResult = treeToDOM(tree);
+                
+                // 如果结果仅是数字，则包装在容器中
+                if (domResult.className === 'expr-number') {
+                    const container = document.createElement('div');
+                    container.appendChild(domResult);
+                    return container;
+                }
+                
+                return domResult;
+            } catch (error) {
+                throw error;
+            }
+        }
+        
+        // 转换输入的表达式
+        function convertExpression() {
+            const input = document.getElementById('expression-input').value.trim();
+            const errorElement = document.getElementById('input-error');
+            const outputContainer = document.getElementById('expr-container');
+            
+            // 清空之前的内容和错误
+            outputContainer.innerHTML = '';
+            errorElement.textContent = '';
+            
+            if (!input) {
+                errorElement.textContent = "请输入表达式";
+                return;
+            }
+            
+            // 检查不允许的字符
+            if (/[-/]/.test(input)) {
+                errorElement.textContent = "不支持减法、除法和负数";
+                return;
+            }
+            
+            // 检查不允许的小数点
+            if (/\./.test(input)) {
+                errorElement.textContent = "不支持小数";
+                return;
+            }
+            
+            try {
+                // 处理表达式
+                const domResult = processExpression(input);
+                outputContainer.appendChild(domResult);
+            } catch (error) {
+                errorElement.textContent = `解析错误: ${error.message}`;
+            }
+        }
+        
+        // 重置表达式
+        function resetExpression() {
+            document.getElementById('expression-input').value = '';
+            document.getElementById('expr-container').innerHTML = '';
+            document.getElementById('input-error').textContent = '';
+        }
+        
+        // 加载示例
+        function loadExample(example) {
+            document.getElementById('expression-input').value = example;
+            convertExpression();
+        }
+    </script>
+</body>
+</html>
