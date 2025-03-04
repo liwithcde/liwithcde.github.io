@@ -1,0 +1,1020 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>生态模拟器</title>
+    <!-- 引入Chart.js图表库 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            /* 优化自然生态主题 */
+            --primary-color: #ffffff;  /* 提升羊的明度（L从85→93） */
+            --secondary-color: #ff0000;  /* 增加狼的饱和度（S从30→45） */
+            --bg-color: #000000;       /* 保持深海蓝 */
+            --text-color: #ffffff;     /* 提高文字对比度 */
+            --grass-color: #00ff80;    /* 微调草地明度 */
+            --button-color: #008c15;   /* 新增按钮颜色变量 */
+        }
+
+        [data-theme="dark"] {
+            /* 重构暗夜主题 */
+            --primary-color: #FFE082;  /* 羊的颜色改为琥珀色 */
+            --secondary-color: #D4A5E9;  /* 狼的颜色改为品红方向的颜色 */
+            --bg-color: #0c0217;       /* 加深背景明度（L从15→10） */
+            --text-color: #fff8c1;     /* 提高文字亮度 */
+            --grass-color: hsl(74, 84%, 61%);    /* 增加草地灰度 */
+            --button-color: rgb(111, 58, 118);   /* 修改按钮颜色 */
+        }
+
+        [data-theme="tech"] {
+            /* 赛博霓虹主题 */
+            --primary-color: #00F3FF;  /* 霓虹蓝（羊） */
+            --secondary-color: #FF2079;  /* 荧光粉（狼） */
+            --bg-color: #0A0F1F;       /* 深空黑 */
+            --text-color: #2bffca;     /* 冰蓝色 */
+            --grass-color: #00C16E;    /* 电子绿 */
+            --button-color: #1f94dd;   /* 修改按钮颜色 */
+        }
+
+        [data-theme="warm"] {
+            /* 强化秋日主题 */
+            --primary-color: #e5d79c;  /* 改为橙色调增加活力 */
+            --secondary-color: #a63a24;  /* 加深红棕色明度（L从35→25） */
+            --bg-color: #1a1a00;       /* 修改为不透明版本 */
+            --text-color: #f7ce8c;     /* 增加文字对比 */
+            --grass-color: #bcdb35;    /* 调整草地饱和度 */
+            --button-color: #aa7d50;   /* 修改按钮颜色 */
+        }
+
+        /* 添加渐变过渡效果 */
+        [data-theme] {
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* 为科技主题添加发光效果 */
+        [data-theme="tech"] button {
+            box-shadow: 0 0 8px var(--primary-color);
+            text-shadow: 0 0 5px rgba(255,255,255,0.3);
+        }
+
+        /* 秋日主题添加纹理背景 */
+        [data-theme="warm"] body {
+            background-color: var(--bg-color); /* 关键修正 */
+        }
+
+        /* 基础页面样式 */
+        body {
+            margin: 0;
+            overflow: hidden;  /* 隐藏滚动条保持全屏体验 */
+            font-family: Arial, sans-serif;
+            background: var(--bg-color);
+        }
+
+        /* 主游戏画布样式 */
+        #gameCanvas {
+            width: 100vw;     /* 占满整个视口宽度 */
+            height: 100vh;    /* 占满整个视口高度 */
+            display: block;
+            background: var(--bg-color);
+        }
+
+        /* 控制按钮容器样式 */
+        .controls {
+            position: fixed;
+            left: 20px;
+            top: 20px;
+            z-index: 1000;    /* 确保按钮在最顶层 */
+            background: var(--ui-bg);
+            padding: 10px;
+            border-radius: 8px;
+            color: var(--text-color);
+        }
+
+        /* 通用按钮样式 */
+        button {
+            padding: 8px 15px;
+            margin: 3px;
+            cursor: pointer;
+            background: linear-gradient(145deg, var(--button-color) 0%, color-mix(in srgb, var(--button-color), black 15%) 100%);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            transition: all 0.3s;  /* 所有属性过渡动画 */
+        }
+        /* 按钮悬停效果 */
+        button:hover {
+            opacity: 0.8;
+            transform: scale(1.05);  /* 轻微放大效果 */
+        }
+
+        /* 参数面板样式 */
+        .param-panel {
+            position: fixed;
+            right: -340px;     /* 初始隐藏在右侧外 */
+            top: 60px;
+            background: rgba(0,0,0,0.1);  /* 修改背景透明度为10% */
+            padding: 15px;
+            color: var(--text-color);
+            width: 320px;
+            max-height: 90vh;  /* 最大高度限制 */
+            overflow-y: auto;  /* 内容过多时显示滚动条 */
+            transition: right 0.3s;  /* 滑动动画效果 */
+        }
+        /* 激活状态的参数面板 */
+        .param-panel.active {
+            right: 20px;  /* 滑动到可见位置 */
+        }
+
+        /* 统计图表容器 */
+        #chartContainer {
+            position: fixed;
+            left: -420px;      /* 初始隐藏在左侧外 */
+            bottom: 20px;
+            background: rgba(0,0,0,0.1);  /* 不透明度调整为10% */
+            border-radius: 8px;
+            padding: 15px;
+            color: var(--text-color);
+            width: 400px;
+            height: 250px;
+            transition: all 0.3s; /* 简化为统一过渡效果 */
+            overflow: hidden; /* 隐藏溢出的按钮 */
+        }
+        /* 修改激活状态样式 */
+        #chartContainer.active {
+            left: 20px !important;
+            transition: all 0.3s;
+        }
+
+        /* 覆盖展开状态样式 */
+        #chartContainer.expanded {
+            left: 0 !important;
+            bottom: 0 !important;
+            width: 98% !important;
+            z-index: 1002;
+        }
+
+        /* 参数项样式 */
+        .param-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255,255,255,0.1);  /* 半透明白色背景 */
+            border-radius: 4px;
+        }
+        /* 参数标签样式 */
+        .param-item label {
+            display: inline-block;
+            width: 120px;  /* 缩小标签宽度 */
+        }
+        /* 滑动条样式 */
+        input[type="range"] {
+            width: 140px;
+            height: 3px;
+            background: #666;
+            margin: 5px 0;
+        }
+
+        /* 数字输入框样式 */
+        .number-input {
+            width: 60px;
+            height: 24px;
+            margin-left: 8px;
+            padding: 2px 5px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 3px;
+            color: var(--text-color);
+            font-size: 0.9em;
+        }
+
+        /* 新增按钮样式 */
+        .expand-btn {
+            position: relative; /* 移除absolute定位 */
+            margin-left: 5px; /* 添加间距 */
+            right: 10px;
+            top: 10px;
+            padding: 4px 8px;
+            font-size: 12px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+
+        /* 主题切换器样式 */
+        .theme-switcher {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            display: flex;
+            gap: 8px;
+            z-index: 1001;
+        }
+
+        .theme-switcher button {
+            padding: 6px 12px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid var(--text-color);
+            transition: all 0.3s;
+        }
+
+        .theme-switcher button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 8px var(--primary-color);
+        }
+
+        /* 增加生物轮廓提升辨识度 */
+        .Animal::after {
+            content: '';
+            position: absolute;
+            width: calc(100% + 4px);
+            height: calc(100% + 4px);
+            border: 2px solid rgba(0,0,0,0.15);
+            border-radius: 50%;
+        }
+
+        /* 动态投影增强层次 */
+        [data-theme="dark"] .Animal {
+            filter: drop-shadow(0 2px 4px rgba(255,255,255,0.1));
+        }
+
+        [data-theme="warm"] .Animal {
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        }
+
+        /* 折叠组样式 */
+        .param-group {
+            margin-bottom: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden; /* 新增 */
+        }
+
+        /* 组标题样式 */
+        .group-header {
+            padding: 8px;
+            background: rgba(255,255,255,0.05);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* 折叠内容容器 */
+        .group-content {
+            max-height: 0;
+            overflow: hidden; /* 添加 */
+            padding: 0 5px; /* 调整左右内边距 */
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* 改为all过渡 */
+        }
+
+        /* 折叠按钮样式 */
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            padding: 0;
+            transition: transform 0.3s;
+        }
+
+        /* 展开状态旋转按钮 */
+        .expanded .toggle-btn {
+            transform: rotate(180deg);
+        }
+    </style>
+</head>
+<body>
+    <!-- 控制按钮区域 -->
+    <div class="controls">
+        <button onclick="spawn('grass', 100)">+100草</button>
+        <button onclick="spawn('sheep', 3)">+3羊</button>
+        <button onclick="spawn('wolf', 1)">+1狼</button>
+        <button onclick="resetWorld()">重置世界</button>
+        <button onclick="togglePanel()">参数面板</button>
+        <button onclick="toggleChart()">统计图表</button>
+        <button onclick="clearEntities()">删除所有生物</button> <!-- 新增按钮 -->
+        <button onclick="toggleEnergyBars()">隐藏能量条</button> <!-- 新增按钮 -->
+        <div class="theme-switcher">
+            <button onclick="changeTheme('default')">🌿 自然</button>
+            <button onclick="changeTheme('dark')">🌑 星云</button>
+            <button onclick="changeTheme('tech')">🔵 科技</button>
+            <button onclick="changeTheme('warm')">🟠 暖秋</button>
+        </div>
+    </div>
+
+    <!-- 主游戏画布 -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- 参数调节面板 -->
+    <div class="param-panel">
+        <h3 style="margin-top:0; color: var(--primary-color);">生态系统参数</h3>
+        
+        <!-- 草生长率参数 -->
+        <div class="param-item">
+            <label>🌱 草生长率 (0-15):</label>
+            <input type="range" id="grassRate" min="0" max="1" step="0.1" value="0.2">
+            <input type="number" class="number-input" value="0.2">
+            <span id="grassRateValue">0.2</span>
+        </div>
+
+        <!-- 羊参数分组 -->
+        <div class="param-group">
+            <div class="group-header" onclick="toggleGroup('sheep')">
+                🐑 羊参数
+                <button class="toggle-btn">▼</button>
+            </div>
+            <div class="group-content" id="sheepGroup" style="max-height: 0px;"> 
+                <!-- 原有羊参数项 -->
+                <div class="param-item">
+                    <label>🐑 移动速度 (0.2-5):</label>
+                    <input type="range" id="sheepSpeed" min="0.2" max="5" step="0.2" value="1">
+                    <input type="number" class="number-input" value="1">
+                    <span id="sheepSpeedValue">1</span>
+                </div>
+
+                <div class="param-item">
+                    <label>🐑 繁殖阈值 (10-450):</label>
+                    <input type="range" id="sheepBreed" min="10" max="150" step="5" value="50">
+                    <input type="number" class="number-input" value="50">
+                    <span id="sheepBreedValue">50</span>
+                </div>
+
+                <div class="param-item">
+                    <label>🐑 能量消耗 (0.5-5):</label>
+                    <input type="range" id="sheepLoss" min="0.5" max="5" step="0.5" value="1.5">
+                    <input type="number" class="number-input" value="1.5">
+                    <span id="sheepLossValue">1.5</span>
+                </div>
+
+                <div class="param-item">
+                    <label>🐑 感知范围 (50-500):</label>
+                    <input type="range" id="sheepPerception" min="50" max="500" step="10" value="100">
+                    <input type="number" class="number-input" value="100">
+                    <span id="sheepPerceptionValue">100</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 狼参数分组 -->
+        <div class="param-group">
+            <div class="group-header" onclick="toggleGroup('wolf')">
+                🐺 狼参数
+                <button class="toggle-btn">▼</button>
+            </div>
+            <div class="group-content" id="wolfGroup" style="max-height: 0px;"> 
+                <!-- 原有狼参数项 -->
+                <div class="param-item">
+                    <label>🐺 移动速度 (0.2-5):</label>
+                    <input type="range" id="wolfSpeed" min="0.5" max="5" step="0.1" value="1.5">
+                    <input type="number" class="number-input" value="1.5">
+                    <span id="wolfSpeedValue">1.5</span>
+                </div>
+
+                <div class="param-item">
+                    <label>🐺 繁殖阈值 (10-150):</label>
+                    <input type="range" id="wolfBreed" min="10" max="150" step="5" value="50">
+                    <input type="number" class="number-input" value="50">
+                    <span id="wolfBreedValue">50</span>
+                </div>
+
+                <div class="param-item">
+                    <label>🐺 能量消耗 (0.5-5):</label>
+                    <input type="range" id="wolfLoss" min="0.5" max="5" step="0.5" value="2">
+                    <input type="number" class="number-input" value="2">
+                    <span id="wolfLossValue">2</span>
+                </div>
+
+                <div class="param-item">
+                    <label>🐺 感知范围 (50-500):</label>
+                    <input type="range" id="wolfPerception" min="50" max="500" step="10" value="150">
+                    <input type="number" class="number-input" value="150">
+                    <span id="wolfPerceptionValue">150</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 统计图表容器 -->
+    <div id="chartContainer">
+        <div style="position: absolute; right: 10px; top: 10px; display: flex; gap: 5px;">
+            <button class="expand-btn" onclick="toggleExpand()">展开</button>
+            <button class="expand-btn" onclick="clearChartData()">清除数据</button>
+        </div>
+        <canvas id="populationChart"></canvas>
+    </div>
+
+    <script>
+        // 获取画布元素和2D渲染上下文
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 实体存储对象：包含草、羊、狼的数组
+        let entities = { grass: [], sheep: [], wolf: [] };
+        
+        // 图表数据存储：时间标签和种群数量
+        let chartData = { labels: [], sheep: [], wolf: [] };
+
+        // 画布尺寸调整函数
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;   // 适配窗口宽度
+            canvas.height = window.innerHeight; // 适配窗口高度
+        }
+        // 监听窗口大小变化事件
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas(); // 初始化画布尺寸
+
+        // 动态配置对象（实时读取滑动条值）
+        const config = {
+            grass: {
+                get spawnRate() { 
+                    return parseFloat(document.querySelector('#grassRate + input[type="number"]').value); 
+                },
+                maxCount: 20000
+            },
+            sheep: {
+                get moveSpeed() { 
+                    return parseFloat(document.querySelector('#sheepSpeed + input[type="number"]').value); 
+                },
+                eatDistance: 5,
+                energy: {
+                    gain: 10,
+                    get loss() { return parseFloat(document.querySelector('#sheepLoss + input[type="number"]').value); },
+                    get breed() { return parseFloat(document.querySelector('#sheepBreed + input[type="number"]').value); }
+                },
+                get perceptionRange() { return parseFloat(document.querySelector('#sheepPerception + input[type="number"]').value); }
+            },
+            wolf: {
+                get moveSpeed() { 
+                    return parseFloat(document.querySelector('#wolfSpeed + input[type="number"]').value); 
+                },
+                eatDistance: 8,
+                energy: {
+                    gain: 10,
+                    get loss() { return parseFloat(document.querySelector('#wolfLoss + input[type="number"]').value); },
+                    get breed() { return parseFloat(document.querySelector('#wolfBreed + input[type="number"]').value); }
+                },
+                get perceptionRange() { return parseFloat(document.querySelector('#wolfPerception + input[type="number"]').value); }
+            }
+        };
+
+        // 颜色转换工具函数
+        function hexToRgb(hex) {
+            if (!hex || hex === 'transparent') return [255, 255, 255];
+            hex = hex.replace('#','');
+            const bigint = parseInt(hex, 16);
+            return [
+                (bigint >> 16) & 255,
+                (bigint >> 8) & 255,
+                bigint & 255
+            ];
+        }
+
+        function getThemeColor(varName) {
+            const hex = getComputedStyle(document.documentElement)
+                .getPropertyValue(varName).trim();
+            return hexToRgb(hex);
+        }
+
+        // 动物类定义
+        class Animal {
+            constructor(type, x, y) {
+                this.type = type;      // 实体类型：'sheep'或'wolf'
+                this.x = x;           // X坐标
+                this.y = y;           // Y坐标
+                this.energy = config[type].energy.breed * 0.5; // 初始能量为繁殖阈值的50%
+                this.size = type === 'sheep' ? 4 : 6; // 根据类型设置不同大小
+                this.walkAngle = Math.random() * Math.PI * 2; // 随机初始移动方向
+                // 新增逃跑状态标记和逃跑剩余时间
+                this.isFleeing = false;
+                this.fleeDuration = 0;
+            }
+
+            // 环面拓扑距离计算方法
+            getWrappedPosition(target) {
+                // 计算所有可能的镜像位置（包含正常位置和三个环面镜像）
+                const mirrors = [
+                    { x: target.x, y: target.y }, // 原始位置
+                    { x: target.x - canvas.width, y: target.y }, // 左侧镜像
+                    { x: target.x + canvas.width, y: target.y }, // 右侧镜像
+                    { x: target.x, y: target.y - canvas.height }, // 上方镜像
+                    { x: target.x, y: target.y + canvas.height }  // 下方镜像
+                ];
+
+                // 寻找最近的有效位置
+                let closest = { x: target.x, y: target.y };
+                let minDist = Infinity;
+                
+                mirrors.forEach(mirror => {
+                    const dx = mirror.x - this.x;
+                    const dy = mirror.y - this.y;
+                    const dist = dx * dx + dy * dy; // 使用平方距离比较避免开方运算
+                    if (dist < minDist) {
+                        minDist = dist;
+                        closest = mirror;
+                    }
+                });
+
+                return closest;
+            }
+
+            // 移动方法
+            move() {
+                const targets = this.type === 'sheep' ? entities.grass : entities.sheep;
+                let closest = null, closestDist = Infinity;
+
+                // 寻找最近的目标（替换原来的for循环）
+                for (const target of targets) {
+                    // 获取环面拓扑下的最近镜像位置
+                    const wrappedTarget = this.getWrappedPosition(target);
+                    const dx = wrappedTarget.x - this.x;
+                    const dy = wrappedTarget.y - this.y;
+                    const dist = Math.hypot(dx, dy);
+                    
+                    if (dist < closestDist) {
+                        closest = wrappedTarget; // 存储修正后的位置
+                        closestDist = dist;
+                        closest.original = target; // 保留原始目标引用用于后续操作
+                    }
+                }
+
+                // 添加羊看到狼逃跑的逻辑
+                if (this.type === 'sheep') {
+                    let closestWolf = null;
+                    let closestWolfDist = Infinity;
+
+                    for (const wolf of entities.wolf) {
+                        // 获取环面拓扑下的最近镜像位置
+                        const wrappedWolf = this.getWrappedPosition(wolf);
+                        const dx = wrappedWolf.x - this.x;
+                        const dy = wrappedWolf.y - this.y;
+                        const dist = Math.hypot(dx, dy);
+                        
+                        if (dist < closestWolfDist) {
+                            closestWolf = wrappedWolf; // 存储修正后的位置
+                            closestWolfDist = dist;
+                            closestWolf.original = wolf; // 保留原始目标引用用于后续操作
+                        }
+                    }
+
+                    // 如果发现狼且距离小于感知范围，则逃跑
+                    if (closestWolf && closestWolfDist < config[this.type].perceptionRange) {
+                        this.isFleeing = true;
+                        this.fleeDuration = 30; // 设置30帧的逃跑持续时间
+                        
+                        // 逃跑方向计算（增加随机偏移避免直线逃跑）
+                        const angle = Math.atan2(this.y - closestWolf.y, this.x - closestWolf.x) 
+                                    + (Math.random()-0.5)*0.5; // ±15度随机偏移
+                        
+                        // 使用原来的移动速度
+                        this.x += Math.cos(angle) * config[this.type].moveSpeed;
+                        this.y += Math.sin(angle) * config[this.type].moveSpeed;
+                        
+                        // 跳过草追踪逻辑（新增条件判断）
+                        return; // 直接结束move方法执行
+                    } else if (this.fleeDuration > 0) {
+                        this.fleeDuration--;
+                    } else {
+                        this.isFleeing = false;
+                    }
+                }
+
+                // 目标追踪逻辑（替换原来的角度计算）
+                if (closest && closestDist < config[this.type].perceptionRange) {
+                    const angle = Math.atan2(closest.y - this.y, closest.x - this.x);
+                    this.x += Math.cos(angle) * config[this.type].moveSpeed;
+                    this.y += Math.sin(angle) * config[this.type].moveSpeed;
+                } else {
+                    // 随机游走逻辑：2%概率改变方向
+                    if (Math.random() < 0.02) {
+                        this.walkAngle += (Math.random() - 0.5) * Math.PI; // ±90度随机偏移
+                    }
+                    this.x += Math.cos(this.walkAngle) * config[this.type].moveSpeed;
+                    this.y += Math.sin(this.walkAngle) * config[this.type].moveSpeed;
+                }
+
+                // 添加斥力逻辑：避免动物重叠
+                const repulsionRadius = 15; // 逃跑时减小斥力半径
+                const repulsionStrength = 0.3; // 逃跑时降低斥力强度
+
+                for (const other of entities[this.type]) {
+                    if (other !== this) {
+                        const dx = other.x - this.x;
+                        const dy = other.y - this.y;
+                        const dist = Math.hypot(dx, dy);
+
+                        if (dist < repulsionRadius) {
+                            const angle = Math.atan2(dy, dx);
+                            const repulsionForce = repulsionStrength * Math.pow(
+                                (repulsionRadius - dist)/repulsionRadius, 
+                                1.2 // 使用更平缓的曲线
+                            );
+                            this.x -= Math.cos(angle) * repulsionForce;
+                            this.y -= Math.sin(angle) * repulsionForce;
+                        }
+                    }
+                }
+
+                // 确保实体坐标在画布范围内
+                this.x = (this.x + canvas.width) % canvas.width;
+                this.y = (this.y + canvas.height) % canvas.height;
+            }
+
+            // 更新状态（返回是否存活）
+            update() {
+                this.move();
+
+                const targets = this.type === 'sheep' ? entities.grass : entities.sheep;
+                // 逆向遍历以便安全删除元素
+                for (let i = targets.length - 1; i >= 0; i--) {
+                    const target = targets[i];
+                    // 获取环面拓扑下的最近镜像位置
+                    const wrappedTarget = this.getWrappedPosition(target);
+                    // 进食检测：距离小于eatDistance时进食
+                    if (Math.hypot(wrappedTarget.x - this.x, wrappedTarget.y - this.y) < config[this.type].eatDistance) {
+                        this.energy += config[this.type].energy.gain; // 增加能量
+                        targets.splice(i, 1); // 移除被吃的目标
+                        break; // 每次只吃一个目标
+                    }
+                }
+
+                // 繁殖检测：能量达到阈值时分裂
+                if (this.energy >= config[this.type].energy.breed) {
+                    const newEnergy = config[this.type].energy.breed * 0.5; // 新生成生物的能量为繁殖阈值的50%
+                    entities[this.type].push(new Animal(this.type, this.x, this.y)); // 生成新个体
+                    entities[this.type][entities[this.type].length - 1].energy = newEnergy; // 设置新个体的能量
+                    this.energy -= newEnergy; // 减少当前生物的能量
+                }
+
+                // 能量消耗检测
+                if (Math.random() < 1/6) {
+                    this.energy -= config[this.type].energy.loss / 10;
+                }
+
+                return this.energy > 0; // 返回存活状态
+            }
+
+            // 绘制方法
+            draw() {
+                // 确保实体坐标在画布范围内
+                const drawX = (this.x + canvas.width) % canvas.width;
+                const drawY = (this.y + canvas.height) % canvas.height;
+
+                // 根据类型设置颜色（羊白/狼亮红色）
+                const colors = this.type === 'sheep' ? 
+                    getThemeColor('--primary-color') :
+                    getThemeColor('--secondary-color');
+                const energyRatio = this.energy / config[this.type].energy.breed; // 能量比例
+                
+                // 绘制主体圆形
+                ctx.beginPath();
+                ctx.arc(drawX, drawY, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${colors.join(',')},${0.5 + energyRatio * 0.5})`; // 透明度随能量变化
+                ctx.fill();
+
+                // 绘制能量条（绿色>50%，红色≤50%）
+                if(showEnergyBars) {
+                    ctx.fillStyle = energyRatio > 0.5 ? '#4CAF50' : '#F44336';
+                    ctx.fillRect(drawX - 10, drawY + 8, 20 * energyRatio, 3);
+                }
+            }
+        }
+
+        // 帧计数器（用于控制图表更新频率）
+        let frameCount = 0;
+
+        // 游戏主循环
+        function gameLoop() {
+            // 草生成逻辑
+            if(entities.grass.length < config.grass.maxCount && Math.random() < config.grass.spawnRate) {
+                const x = Math.random() * canvas.width; // 修改为
+                const y = Math.random() * canvas.height; // 修改为
+                entities.grass.push({ x, y });
+            }
+
+            // 更新所有实体状态
+            updateEntities('sheep');
+            updateEntities('wolf');
+
+            // 清空画布
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg-color');
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 绘制所有草（绿色小方块）
+            entities.grass.forEach(g => {
+                ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--grass-color');
+                ctx.fillRect(g.x, g.y, 2, 2);
+            });
+
+            // 绘制所有动物
+            entities.sheep.forEach(s => s.draw());
+            entities.wolf.forEach(w => w.draw());
+
+            // 每60帧更新一次图表（约每秒更新）
+            if(frameCount++ % 60 === 0) {
+                updateChart();
+                // 在gameLoop函数内添加
+                if(frameCount % 60 === 0) {
+                    console.log('羊群状态：', 
+                        `逃跑中：${entities.sheep.filter(s => s.isFleeing).length}`,
+                        `平均能量：${entities.sheep.reduce((a,b)=>a+b.energy,0)/entities.sheep.length || 0}`
+                    );
+                }
+            }
+
+            requestAnimationFrame(gameLoop); // 循环调用保持动画流畅
+        }
+
+        // 初始化统计图表
+        const chart = new Chart(document.getElementById('populationChart'), {
+            type: 'line',
+            data: {
+                labels: chartData.labels,  // X轴标签（时间）
+                datasets: [{
+                    label: '羊',
+                    data: chartData.sheep, // 羊数量数据集
+                    borderColor: getComputedStyle(document.documentElement).getPropertyValue('--primary-color'), // 绿色线条
+                    tension: 0.3          // 曲线平滑度
+                }, {
+                    label: '狼',
+                    data: chartData.wolf,  // 狼数量数据集
+                    borderColor: getComputedStyle(document.documentElement).getPropertyValue('--secondary-color'), // 修改狼的颜色为亮红色
+                    tension: 0.3,
+                    yAxisID: 'y1'         // 关联到新的Y轴
+                }]
+            },
+            options: {
+                responsive: true,        // 响应式布局
+                maintainAspectRatio: false, // 不保持纵横比
+                plugins: { 
+                    legend: { 
+                        position: 'top'  // 图例显示在顶部
+                    } 
+                },
+                scales: {
+                    y: { 
+                        beginAtZero: true, // Y轴从0开始
+                        id: 'y',           // 默认Y轴ID
+                        position: 'left'   // 默认Y轴位置
+                    },
+                    y1: {                 // 新增的Y轴配置
+                        beginAtZero: true,
+                        id: 'y1',
+                        position: 'right',
+                        grid: {
+                            drawOnChartArea: false // 不在图表区域内绘制网格线
+                        }
+                    },
+                    x: { 
+                        display: false   // 隐藏X轴标签
+                    }
+                }
+            }
+        });
+
+        let shouldPause = false; // 新增全局变量
+
+        function updateChart() {
+            // 检测是否需要暂停记录
+            if(entities.sheep.length === 0 && entities.wolf.length === 0) {
+                shouldPause = true;
+                return; // 停止记录
+            } else if(shouldPause) {
+                // 当生物重新出现时重置数据
+                chartData = { labels: [], sheep: [], wolf: [] };
+                shouldPause = false;
+            }
+            
+            const time = new Date().toLocaleTimeString(); // 获取当前时间
+            chartData.labels.push(time);          // 添加时间标签
+            chartData.sheep.push(entities.sheep.length); // 当前羊数量
+            chartData.wolf.push(entities.wolf.length);   // 当前狼数量，移除乘以20
+            
+            // 限制数据上限为一万
+            if (chartData.labels.length > 10000) {
+                chartData.labels.shift();
+                chartData.sheep.shift();
+                chartData.wolf.shift();
+            }
+
+            // 根据展开状态显示数据
+            chart.data.labels = isChartExpanded ? chartData.labels : chartData.labels.slice(-100);
+            chart.data.datasets[0].data = isChartExpanded ? chartData.sheep : chartData.sheep.slice(-100);
+            chart.data.datasets[1].data = isChartExpanded ? chartData.wolf : chartData.wolf.slice(-100);
+            
+            chart.update(); // 刷新图表显示
+
+            // 调试信息：检查数据和图表状态
+            console.log('Chart Data:', chartData);
+            console.log('Chart Instance:', chart);
+        }
+
+        function togglePanel() {
+            document.querySelector('.param-panel').classList.toggle('active');
+        }
+
+        function toggleChart() {
+            const chartContainer = document.getElementById('chartContainer');
+            
+            // 如果当前是展开状态，先执行收拢
+            if(isChartExpanded) {
+                toggleExpand(); // 这会重置isChartExpanded状态
+            }
+            
+            // 切换基础显示状态（通过CSS类控制）
+            chartContainer.classList.toggle('active');
+            
+            // 收拢后清除可能残留的内联样式
+            if(!chartContainer.classList.contains('active')) {
+                chartContainer.style.removeProperty('left');
+                chartContainer.style.removeProperty('bottom');
+                chartContainer.style.removeProperty('width');
+            }
+        }
+
+        function toggleExpand() {
+            const container = document.getElementById('chartContainer');
+            isChartExpanded = !isChartExpanded;
+            
+            container.querySelector('.expand-btn').textContent = isChartExpanded ? '收拢' : '展开';
+            
+            // 强制清除可能冲突的内联样式
+            container.style.removeProperty('left');
+            container.style.removeProperty('bottom');
+            container.style.removeProperty('width');
+            
+            if(isChartExpanded) {
+                container.classList.add('expanded'); // 添加扩展状态标记
+                container.style.setProperty('left', '0', 'important');
+                container.style.setProperty('bottom', '0', 'important');
+                container.style.setProperty('width', '98%', 'important');
+            } else {
+                container.classList.remove('expanded');
+                // 保留active类，通过CSS类控制定位
+            }
+        }
+
+        function updateEntities(type) {
+            for(let i = entities[type].length-1; i>=0; i--) {
+                if(!entities[type][i].update()) {
+                    entities[type].splice(i, 1);
+                }
+            }
+        }
+
+        function spawn(type, count) {
+            if (type === 'grass') {
+                for (let i = 0; i < count; i++) {
+                    const x = Math.random() * canvas.width; // 修改为
+                    const y = Math.random() * canvas.height; // 修改为
+                    entities.grass.push({ x, y });
+                }
+            } else {
+                for (let i = 0; i < count; i++) {
+                    entities[type].push(new Animal(
+                        type,
+                        Math.random() * canvas.width,
+                        Math.random() * canvas.height
+                    ));
+                }
+            }
+        }
+
+        function resetWorld() {
+            entities = { grass: [], sheep: [], wolf: [] };
+            clearChartData(); // 清除图表数据
+            for (let i = 0; i < 100; i++) { // 修改初始草的数量为100
+                const x = Math.random() * (canvas.width - 24) + 12; // 生成在边界内12像素外的x坐标
+                const y = Math.random() * (canvas.height - 24) + 12; // 生成在边界内12像素外的y坐标
+                entities.grass.push({ x, y });
+            }
+            spawn('sheep', 40); // 修改初始羊的数量为40
+            spawn('wolf', 5);
+        }
+
+        // 新增函数：删除场上所有生物
+        function clearEntities() {
+            entities = { grass: [], sheep: [], wolf: [] };
+        }
+
+        document.querySelectorAll('input[type="range"]').forEach(input => {
+            input.addEventListener('input', function() {
+                document.getElementById(this.id + 'Value').textContent = this.value;
+            });
+        });
+
+        // 新增事件监听器
+        document.getElementById('sheepPerception').addEventListener('input', function() {
+            document.getElementById('sheepPerceptionValue').textContent = this.value;
+        });
+        document.getElementById('wolfPerception').addEventListener('input', function() {
+            document.getElementById('wolfPerceptionValue').textContent = this.value;
+        });
+
+        // 在全局添加展开状态标记
+        let isChartExpanded = false;
+
+        function clearChartData() {
+            chartData = { labels: [], sheep: [], wolf: [] };
+            chart.data.labels = [];
+            chart.data.datasets.forEach(dataset => dataset.data = []);
+            chart.update();
+        }
+
+        // 主题配置对象
+        const themes = {
+            default: {},
+            dark: {},
+            tech: {},
+            warm: {}
+        };
+
+        function changeTheme(themeName) {
+            document.documentElement.setAttribute('data-theme', themeName);
+            
+            // 更新图表颜色
+            chart.data.datasets[0].borderColor = getComputedStyle(document.documentElement)
+                .getPropertyValue('--primary-color');
+            chart.data.datasets[1].borderColor = getComputedStyle(document.documentElement)
+                .getPropertyValue('--secondary-color');
+            chart.update();
+            
+            // 强制重绘所有动物
+            entities.sheep.forEach(s => s.draw());
+            entities.wolf.forEach(w => w.draw());
+        }
+
+        let showEnergyBars = false; // 修改默认状态为隐藏
+
+        // 添加切换函数
+        function toggleEnergyBars() {
+            showEnergyBars = !showEnergyBars;
+            const btn = document.querySelector('button[onclick="toggleEnergyBars()"]');
+            btn.textContent = showEnergyBars ? '隐藏能量条' : '显示能量条';
+        }
+
+        document.querySelector('button[onclick="toggleEnergyBars()"]').textContent = 
+            showEnergyBars ? '隐藏能量条' : '显示能量条';
+
+        // 修改后的折叠控制函数
+        function toggleGroup(groupId) {
+            const groupContent = document.getElementById(groupId + 'Group');
+            const toggleBtn = groupContent.previousElementSibling.querySelector('.toggle-btn');
+            
+            // 添加展开状态类
+            groupContent.classList.toggle('expanded');
+            
+            if (groupContent.classList.contains('expanded')) {
+                // 展开时设置精确高度
+                groupContent.style.maxHeight = groupContent.scrollHeight + 'px';
+                toggleBtn.textContent = '▲';
+            } else {
+                // 折叠时重置高度并添加过渡
+                groupContent.style.maxHeight = '0';
+                toggleBtn.textContent = '▼';
+            }
+        }
+
+        // 初始化代码需要添加（放在页面加载事件中）：
+        window.addEventListener('load', () => {
+            document.querySelectorAll('.group-content').forEach(group => {
+                group.style.maxHeight = '0'; // 确保初始状态为折叠
+                group.classList.remove('expanded'); // 移除展开状态
+            });
+        });
+
+        // 同步滑动条和数字输入框
+        document.querySelectorAll('input[type="range"]').forEach(range => {
+            const numberInput = range.nextElementSibling;
+            
+            // 移除输入框的所有限制属性
+            numberInput.removeAttribute('min');
+            numberInput.removeAttribute('max');
+            numberInput.removeAttribute('step');
+
+            range.addEventListener('input', function() {
+                // 直接同步数值，不进行任何处理
+                numberInput.value = this.value;
+                document.getElementById(this.id + 'Value').textContent = this.value;
+            });
+
+            numberInput.addEventListener('change', function() {
+                // 直接传递原始值
+                const value = parseFloat(this.value) || 0;
+                
+                // 更新滑动条值（即使超出原始范围）
+                range.value = value;
+                
+                // 更新显示值
+                document.getElementById(range.id + 'Value').textContent = value;
+                
+                // 强制更新配置
+                range.dispatchEvent(new Event('input'));
+            });
+        });
+
+        resetWorld();
+        gameLoop();
+    </script>
+</body>
+</html>
