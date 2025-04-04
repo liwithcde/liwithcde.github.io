@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Collage Maker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="vending.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Image Collage Maker</h1>
+        
+        <div class="upload-section">
+            <input type="file" id="imageUpload" multiple accept="image/*">
+            <label for="imageUpload">Upload your images (multiple selection supported)</label>
+        </div>
+
+        <div class="layout-categories" id="layoutCategories">
+            <h3>Choose a Collage Layout</h3>
+            <!-- This will be populated by JavaScript -->
+        </div>
+
+        <div class="workspace">
+            <div class="image-pool">
+                <h3>Your Images</h3>
+                <div id="imagePool"></div>
+            </div>
+            <div class="collage-frame">
+                <h3>Collage Frame</h3>
+                <div class="frame-controls">
+                    <label for="frameWidth">Frame Width:</label>
+                    <input type="range" id="frameWidth" min="1" max="20" value="2">
+                    <span id="frameWidthValue">2px</span>
+                </div>
+                <div id="collageFrame"></div>
+                <button class="download-btn" id="downloadBtn">Download Collage</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="layout.js"></script>
+    <script type="module" src="vending.js"></script>
+    
+</body>
+</html>
