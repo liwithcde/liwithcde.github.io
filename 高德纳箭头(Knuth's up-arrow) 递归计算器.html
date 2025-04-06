@@ -625,11 +625,11 @@
                 return;
             }
             
-            const baseNum = parseInt(base);
-            const exponentNum = parseInt(exponent);
+            const baseNum = BigInt(base);
+            const exponentNum = BigInt(exponent);
             
             // 特殊情况处理
-            if (exponentNum === 0) {
+            if (exponentNum === 0n) {
                 // x^0 = 1
                 const numElement = document.createElement('span');
                 numElement.className = 'expr-number';
@@ -649,7 +649,7 @@
                 return;
             }
             
-            if (exponentNum === 1) {
+            if (exponentNum === 1n) {
                 // x^1 = x
                 const numElement = document.createElement('span');
                 numElement.className = 'expr-number';
@@ -673,7 +673,7 @@
             const tempContainer = document.createElement('div');
             
             // 创建表达式字符串
-            const exprString = `${base} * ${base}^${exponentNum - 1}`;
+            const exprString = `${base} * ${base}^${exponentNum - 1n}`;
             
             try {
                 // 解析和构建临时DOM
@@ -704,7 +704,7 @@
             // 获取基数、指数和箭头数量
             const base = element.getAttribute('data-base');
             const exponent = element.getAttribute('data-exponent');
-            const arrowCount = parseInt(element.getAttribute('data-arrow-count'));
+            const arrowCount = BigInt(element.getAttribute('data-arrow-count'));
             
             // 如果基数或指数不是简单数字，则无法展开
             if (base === 'complex' || exponent === 'complex') {
@@ -712,11 +712,11 @@
                 return;
             }
             
-            const baseNum = parseInt(base);
-            const exponentNum = parseInt(exponent);
+            const baseNum = BigInt(base);
+            const exponentNum = BigInt(exponent);
             
             // 特殊情况处理
-            if (exponentNum === 0 && arrowCount > 1) {
+            if (exponentNum === 0n && arrowCount > 1n) {
                 // a↑↑0 = 1, a↑↑↑0 = 1, 等等
                 const numElement = document.createElement('span');
                 numElement.className = 'expr-number';
@@ -736,7 +736,7 @@
                 return;
             }
             
-            if (exponentNum === 1) {
+            if (exponentNum === 1n) {
                 // a↑↑1 = a, a↑↑↑1 = a, 等等
                 const numElement = document.createElement('span');
                 numElement.className = 'expr-number';
@@ -759,24 +759,24 @@
             // 创建展开表达式
             let exprString;
             
-            if (arrowCount === 1) {
+            if (arrowCount === 1n) {
                 // a↑b = a^b
                 exprString = `${base}^${exponent}`;
             } else {
                 // 生成箭头字符串，比如 ↑ 或 ↑↑ 等
                 let arrowPrevLevel = '';
-                for (let i = 0; i < arrowCount - 1; i++) {
+                for (let i = 0n; i < arrowCount - 1n; i++) {
                     arrowPrevLevel += '↑';
                 }
                 
                 let arrowCurrentLevel = '';
-                for (let i = 0; i < arrowCount; i++) {
+                for (let i = 0n; i < arrowCount; i++) {
                     arrowCurrentLevel += '↑';
                 }
                 
                 // a↑↑b = a↑(a↑↑(b-1))  
                 // a↑↑↑b = a↑↑(a↑↑↑(b-1))
-                exprString = `${base}${arrowPrevLevel}(${base}${arrowCurrentLevel}${exponentNum - 1})`;
+                exprString = `${base}${arrowPrevLevel}(${base}${arrowCurrentLevel}${exponentNum - 1n})`;
             }
             
             try {
@@ -814,9 +814,9 @@
             for (const child of children) {
                 if (child.className === 'expr-number') {
                     if (leftNum === null) {
-                        leftNum = parseInt(child.textContent);
+                        leftNum = BigInt(child.textContent);
                     } else {
-                        rightNum = parseInt(child.textContent);
+                        rightNum = BigInt(child.textContent);
                     }
                 } else if (child.className === 'expr-operator') {
                     operator = child.textContent;
