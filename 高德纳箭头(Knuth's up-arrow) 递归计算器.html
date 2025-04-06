@@ -471,21 +471,7 @@
                 opElement.textContent = node.operator;
                 
                 // 判断表达式类型
-                if (node.operator === '^') {
-                    // 幂运算是可展开的
-                    groupElement.className = 'expr-expandable';
-                    groupElement.title = '点击展开幂运算';
-                    
-                    // 存储必要的数据用于展开
-                    groupElement.setAttribute('data-base', node.left.type === 'number' ? node.left.value : 'complex');
-                    groupElement.setAttribute('data-exponent', node.right.type === 'number' ? node.right.value : 'complex');
-                    
-                    // 添加点击事件
-                    groupElement.onclick = function(e) {
-                        e.stopPropagation();
-                        expandPowerExpression(this);
-                    };
-                } else if (['+', '*'].includes(node.operator) && 
+                if (['+', '*', '^'].includes(node.operator) && 
                           isSimpleNumber(node.left) && isSimpleNumber(node.right)) {
                     // 基本运算是可计算的
                     groupElement.className = 'expr-computable';
@@ -832,6 +818,7 @@
             switch (operator) {
                 case '+': result = leftNum + rightNum; break;
                 case '*': result = leftNum * rightNum; break;
+                case '^': result = leftNum ** rightNum; break;
                 default: return; // 不支持的运算符
             }
             
